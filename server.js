@@ -11,29 +11,31 @@ app.get("/api/healthz", (_req, res) => {
 
 app.get("/api/prices", async (req, res) => {
   try {
-    const url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,mxn,eur";
-    const response = await fetch(url, {
-      headers: { 
-        "Accept": "application/json",
-        "User-Agent": "lens-api/1.0"
-      },
-    });
-    const data = await response.json();
+    const url = "https://open.er-api.com/v6/latest/USD";
+    const r = await fetch(url);
+    const fx = await r.json();
+
+    const btcR = await fetch("https://api.coinbase.com/v2/prices/BTC-USD/spot");
+    const btcD = await btcR.json();
+
+    const ethR = await fetch("https://api.coinbase.com/v2/prices/ETH-USD/spot");
+    const ethD = await ethR.json();
+
     return res.json({
       prices: {
-        BTC: { usd: data.bitcoin.usd },
-        ETH: { usd: data.ethereum.usd },
+        BTC: { usd: parseFloat(btcD.data.amount) },
+        ETH: { usd: parseFloat(ethD.data.amount) },
         XAU: { usd: 2320 },
       },
       exchangeRates: {
-        MXN: { usdRate: data.bitcoin.mxn / data.bitcoin.usd },
-        EUR: { usdRate: data.bitcoin.eur / data.bitcoin.usd },
+        MXN: { usdRate: fx.rates.MXN },
+        EUR: { usdRate: fx.rates.EUR },
       },
       fetchedAt: new Date().toISOString(),
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: err.message });
   }
 });
 
